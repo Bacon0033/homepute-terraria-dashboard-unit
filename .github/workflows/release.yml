@@ -29,6 +29,6 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/homepute-terraria-dashboard-unit:1.0.0
-            ghcr.io/${{ github.repository_owner }}/homepute-terraria-dashboard-unit:latest
+            ghcr.io/bacon0033/homepute-terraria-dashboard-unit:1.0.0
+            ghcr.io/bacon0033/homepute-terraria-dashboard-unit:latest
           provenance: false
