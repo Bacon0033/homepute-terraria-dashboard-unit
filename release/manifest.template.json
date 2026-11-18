@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "unit": {
+    "id": "terraria-dashboard",
+    "name": "Terraria Dashboard",
+    "version": "1.1.0",
+    "publisher": "homepute",
+    "description": "View a connected Terraria world and manage its console with an owner-provided key.",
+    "longDescription": "View Terraria world state and recent output, then send console commands from a clean local web dashboard. This is a Homepute add-on: it declares a generic HTTP/JSON input and a suggested connection to the Terraria Server output rather than relying on game-specific behavior in the platform.",
+    "category": "gaming",
+    "license": "MIT",
+    "homepage": "https://github.com/Bacon0033/homepute-terraria-dashboard-unit",
+    "repository": "https://github.com/Bacon0033/homepute-terraria-dashboard-unit"
+  },
+  "compatibility": {
+    "homeputeApi": "^1.1.0"
+  },
+  "runtime": {
+    "kind": "oci",
+    "image": "ghcr.io/bacon0033/homepute-terraria-dashboard-unit",
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "environment": [
+      {
+        "name": "PORT",
+        "source": "literal",
+        "value": "3000"
+      }
+    ]
+  },
+  "configuration": {
+    "fields": [
+      {
+        "key": "dashboardPort",
+        "label": "Dashboard port",
+        "description": "TCP port used to open the dashboard on your local network.",
+        "type": "number",
+        "required": true,
+        "default": 3080,
+        "min": 1024,
+        "max": 65535
+      }
+    ]
+  },
+  "resources": {
+    "minimum": {
+      "cpuCores": 1,
+      "memoryMb": 64,
+      "storageMb": 0
+    },
+    "defaults": {
+      "cpuCores": 1,
+      "memoryMb": 128,
+      "storageMb": 0
+    },
+    "limits": {
+      "cpuCores": 2,
+      "memoryMb": 512,
+      "storageMb": 1024
+    }
+  },
+  "network": {
+    "ports": [
+      {
+        "name": "dashboard",
+        "containerPort": 3000,
+        "protocol": "http",
+        "exposure": "lan",
+        "hostPortConfigKey": "dashboardPort"
+      }
+    ]
+  },
+  "dataPorts": [
+    {
+      "id": "server-channel",
+      "label": "Server channel",
+      "direction": "input",
+      "color": "#9c82ee",
+      "dataFormat": "application/vnd.homepute.console.v1+json",
+      "description": "Consumes compatible state and output, and sends commands through the same request/response channel.",
+      "transport": {
+        "kind": "http-json-v1",
+        "port": "dashboard",
+        "path": "/api/link",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "requestResponse": true
+      }
+    }
+  ],
+  "marketplace": {
+    "type": "add-on",
+    "forUnitIds": [
+      "terraria-server"
+    ],
+    "suggestedConnections": [
+      {
+        "source": "parent",
+        "sourcePort": "server-channel",
+        "target": "self",
+        "targetPort": "server-channel"
+      }
+    ]
+  },
+  "storage": {
+    "volumes": []
+  },
+  "health": {
+    "readiness": {
+      "type": "http",
+      "port": "dashboard",
+      "path": "/health",
+      "intervalSeconds": 5,
+      "timeoutSeconds": 3,
+      "retries": 30
+    },
+    "liveness": {
+      "type": "http",
+      "port": "dashboard",
+      "path": "/health",
+      "intervalSeconds": 30,
+      "timeoutSeconds": 5,
+      "retries": 3
+    }
+  },
+  "lifecycle": {
+    "stopGraceSeconds": 10,
+    "restartPolicy": "unless-stopped",
+    "restartMaximumRetries": 5
+  },
+  "capabilities": [
+    "network.ingress",
+    "network.egress"
+  ],
+  "update": {
+    "strategy": "replace-preserve-volumes"
+  },
+  "presentation": {
+    "icon": "TD",
+    "screenshots": [],
+    "documentationUrl": "https://github.com/Bacon0033/homepute-terraria-dashboard-unit#readme",
+    "canvas": {
+      "fields": [
+        {
+          "key": "terrariaDashboard.lanAddress",
+          "label": "Dashboard local network",
+          "source": {
+            "type": "endpoint",
+            "port": "dashboard",
+            "address": "lan"
+          },
+          "format": "text",
+          "hint": "Open this address in a browser on the same network."
+        }
+      ]
+    }
+  }
+}
