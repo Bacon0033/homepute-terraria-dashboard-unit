@@ -6,4 +6,5 @@ WORKDIR /app
 COPY server.mjs panel.html /app/
 EXPOSE 3000/tcp
 USER node
+HEALTHCHECK --interval=15s --timeout=4s --start-period=20s --retries=3 CMD wget -q -O /dev/null "http://127.0.0.1:${PORT:-3000}/health"
 ENTRYPOINT ["node", "/app/server.mjs"]
