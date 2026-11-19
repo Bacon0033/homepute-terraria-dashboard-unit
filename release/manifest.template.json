@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "unit": {
     "id": "terraria-dashboard",
-    "name": "Terraria Dashboard",
-    "version": "1.1.0",
+    "name": "Terraria Server Panel",
+    "version": "1.2.0",
     "publisher": "homepute",
-    "description": "View a connected Terraria world and manage its console with an owner-provided key.",
+    "description": "Watch live performance, read game output and send commands to the Terraria server connected to this panel.",
     "longDescription": "View Terraria world state and recent output, then send console commands from a clean local web dashboard. This is a Homepute add-on: it declares a generic HTTP/JSON input and a suggested connection to the Terraria Server output rather than relying on game-specific behavior in the platform.",
     "category": "gaming",
     "license": "MIT",

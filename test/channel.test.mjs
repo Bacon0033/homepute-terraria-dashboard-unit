@@ -33,7 +33,7 @@ test(
     t.after(() => new Promise((resolve) => upstream.close(resolve)));
     const connections = [
       {
-        port: 'server-channel',
+        port: 'server-channel', remotePort: 'server-channel', direction: 'input', status: 'active',
         remoteUrl: 'http://127.0.0.1:' + upstream.address().port,
         transport: { path: '/v1/channel' },
       },

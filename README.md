@@ -1,5 +1,7 @@
-# Homepute Terraria Dashboard
+# Terraria Server Panel
 
-Connect the dashboard input to the Terraria server’s **Server channel** output. Restart the dashboard after wiring. Open the LAN address to view world state. Set a companion console key of at least 16 characters on the server, then enter the same key and choose **Use key** in the dashboard to see logs or send commands. The browser keeps the key in memory for the open page. Use the dashboard on a trusted network.
+Power the panel from a Homepute node. Connect the Terraria server’s **Server channel OUT** to the panel’s **Server channel IN**. Choose **Open game panel** on the panel card in Studio. The signed-in Studio session reads the wired server’s CPU, memory and game logs and sends commands to that deployment. Disconnecting the wire or unplugging the panel disables commands. Connect one server per panel.
 
-The root manifest identifies the published release. The candidate manifest in `release/` requires a tested runtime digest. The image workflow checks the private Playtest Room’s reviewed SDK evidence before publishing.
+The LAN address opens the standalone panel. It reads the same server through the SDK’s HTTP/JSON connection environment. Performance and world status are visible to LAN visitors. Enter the optional companion console key configured on the Terraria server to read private logs and send commands. The key stays in the open page’s memory.
+
+The repository-root manifest identifies the published image. The release workflow runs the channel tests and the Playtest Room SDK evidence gate before publishing the new image and preparing its pinned manifest.

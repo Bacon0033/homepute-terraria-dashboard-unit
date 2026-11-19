@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terraria · Server panel</title>
+<style>
+:root{color-scheme:dark;--ink:#edeee6;--muted:#a2afa6;--edge:#354338;--surface:#18221e;--lime:#c4ef89;--sky:#a7d8de;font:15px/1.45 "DM Sans",system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);background:radial-gradient(ellipse at 90% 0%,#25372a 0,transparent 52%),#101814}main{max-width:1080px;margin:auto;padding:clamp(18px,4vw,46px)}
+header,.heading,.reading,.logline,form{display:flex;align-items:center;gap:12px}header,.heading,.reading{justify-content:space-between}header{margin-bottom:28px}h1,h2,p{margin:0}h1{font:500 clamp(30px,5vw,54px)/1.05 Georgia,serif;letter-spacing:-.035em;margin:9px 0}h2{font-size:17px}.kicker,.muted,time{color:var(--muted)}.kicker{font-size:11px;letter-spacing:.15em;text-transform:uppercase;font-weight:700}
+#status{white-space:nowrap;border:1px solid var(--edge);border-radius:20px;padding:6px 12px;font-size:13px}#status[data-live=true]{color:var(--lime);background:#233321}#status::before{content:'●';font-size:9px;margin-right:7px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}article,section{border:1px solid var(--edge);border-radius:16px;background:var(--surface);min-width:0}article{padding:16px 20px;color:var(--lime)}article:nth-child(2){color:var(--sky)}article h2{color:var(--ink);font-size:14px;font-weight:550}.reading strong{font:500 23px/1.5 ui-monospace,monospace}
+svg{display:block;width:100%;height:68px;background:repeating-linear-gradient(0deg,transparent 0 20px,#ffffff12 21px,transparent 22px)}polyline{fill:none;stroke:currentColor;stroke-width:2;vector-effect:non-scaling-stroke}.axis{font-size:11px;color:var(--muted);margin-top:5px}
+section{margin-top:18px;overflow:hidden}.heading,form{padding:15px 19px}.heading{border-bottom:1px solid var(--edge)}.heading span{font-size:12px;color:var(--muted)}#logs{height:clamp(165px,32vh,370px);overflow:auto;padding:12px 18px;background:#101813;font:12.5px/1.7 ui-monospace,monospace}.logline{align-items:baseline;gap:14px;overflow-wrap:anywhere;white-space:pre-wrap}time{flex:none;font-size:11px}form{border-top:1px solid var(--edge);flex-wrap:wrap}input{flex:1;min-width:120px;border:1px solid var(--edge);border-radius:8px;background:#0f1812;color:var(--ink);font:14px ui-monospace,monospace;padding:11px}button{border:0;border-radius:8px;background:var(--lime);color:#162211;font:650 14px system-ui;padding:11px 18px;cursor:pointer}button:disabled{background:#344237;color:#a1ada4;cursor:default}:focus-visible{outline:2px solid var(--sky);outline-offset:3px}[hidden]{display:none!important}#notice{margin-top:10px;min-height:1.4em;font-size:13px}.muted{overflow-wrap:anywhere}@media(max-width:530px){.grid{gap:8px}article{padding:12px}.reading{align-items:flex-start;flex-direction:column;gap:0}.heading,form{padding:12px}.logline{gap:8px}main{padding:16px}header{align-items:flex-start}}
+</style>
+<main>
+<header><div><div class="kicker">Terraria · Server panel</div><h1 id="world">Terraria server</h1><p class="muted" id="details"></p></div><span id="status" role="status">Connecting</span></header>
+<div class="grid">
+<article><div class="reading"><h2>CPU usage</h2><strong id="cpu">—</strong></div><svg viewBox="0 0 400 70" preserveAspectRatio="none" aria-label="Recent CPU usage"><polyline id="cpuPlot"/></svg><p class="axis" id="cpuAxis">Waiting for samples</p></article>
+<article><div class="reading"><h2>Memory</h2><strong id="memory">—</strong></div><svg viewBox="0 0 400 70" preserveAspectRatio="none" aria-label="Recent memory use"><polyline id="memPlot"/></svg><p class="axis" id="memAxis">Waiting for samples</p></article>
+</div>
+<section><div class="heading"><h2>Game console</h2><span id="count"></span></div><div id="logs" tabindex="0" aria-label="Server output"></div>
+<form id="unlock" hidden><input id="key" type="password" autocomplete="off" aria-label="Owner console key" placeholder="Owner console key"><button>Unlock console</button></form>
+<form id="send"><input id="command" autocomplete="off" aria-label="Terraria server command" maxlength="512" placeholder="Enter a server command"><button id="submit" disabled>Send command</button></form></section>
+<p class="muted" role="status" id="notice"></p>
+</main>
+<script>
+const el = id => document.getElementById(id);
+const embedded = window.parent !== window && location.hash === '#studio';
+let credential = '', authorized = false, pending = false, lastLogs = '';
+function chart(samples, field, valueId, plotId, axisId, unit) {
+  const points = samples.filter(p => Number.isFinite(p[field]) && Number.isFinite(p.time));
+  const latest = points.at(-1);
+  el(valueId).textContent = latest ? Math.round(latest[field]) + unit : '—';
+  const peak = Math.max(0, ...points.map(p => p[field]));
+  const max = Math.max(1, peak);
+  const span = points.length > 1 ? latest.time - points[0].time : 0;
+  el(plotId).setAttribute('points', span ? points.map(p => (400*(p.time-points[0].time)/span).toFixed(1)+','+(68-66*p[field]/max).toFixed(1)).join(' ') : '');
+  el(axisId).textContent = span ? 'Last ' + Math.round(span) + 's · peak ' + Math.ceil(peak) + unit : 'Waiting for samples';
+}
+function state(s) {
+  authorized = Boolean(s.consoleAuthorized && s.ready);
+  const status = s.ready ? 'Online' : s.running ? 'Starting' : s.error ? 'Disconnected' : 'Offline';
+  el('status').textContent = status; el('status').dataset.live = String(Boolean(s.ready));
+  el('world').textContent = s.world || 'Terraria server';
+  el('details').textContent = s.error || [s.gameVersion && 'Version '+s.gameVersion, s.publicAddress && 'Internet '+s.publicAddress, s.gamePort && 'Port '+s.gamePort, s.uptimeSeconds != null && (s.uptimeSeconds < 60 ? s.uptimeSeconds+'s' : Math.floor(s.uptimeSeconds/60)+' min')+' uptime'].filter(Boolean).join(' · ');
+  chart(s.samples || [], 'cpuPercent','cpu','cpuPlot','cpuAxis','%');
+  if (!embedded && s.samples?.length) el('cpuAxis').textContent += ' · 100% per core';
+  chart(s.samples || [], 'memoryMiB','memory','memPlot','memAxis',' MiB');
+  el('unlock').hidden = embedded || s.consoleAuthorized || !s.running;
+  el('submit').disabled = !authorized || pending;
+  const logs = s.logs || [], serialized = JSON.stringify(logs);
+  el('count').textContent = logs.length ? logs.length+' recent lines' : '';
+  const box = el('logs'), empty = s.error || (s.consoleAuthorized ? 'Waiting for game output.' : 'Unlock the console to read game output.');
+  if (lastLogs === serialized+empty) return;
+  lastLogs = serialized+empty;
+  const atEnd = box.scrollHeight - box.clientHeight - box.scrollTop < 22;
+  box.replaceChildren(...logs.map(entry => {
+    const row = document.createElement('div'), ts = document.createElement('time');
+    row.className = 'logline'; ts.textContent = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : '';
+    row.append(ts, document.createTextNode(entry.message)); return row;
+  }));
+  if (!logs.length) box.textContent = empty;
+  if (atEnd) box.scrollTop = box.scrollHeight;
+}
+async function refresh() {
+  try {
+    const res = await fetch('./api/state',{headers:{'X-Terraria-Console-Key':credential},cache:'no-store'});
+    const data = await res.json(); state(res.ok ? data : {error:data.error || 'Server unavailable'});
+  } catch { state({error:'Connection to the server was interrupted.'}); }
+}
+el('unlock').onsubmit = async e => {e.preventDefault(); credential = el('key').value; el('key').value=''; await refresh(); el('notice').textContent = el('unlock').hidden ? '' : 'The server declined this console key.';};
+el('send').onsubmit = async e => {
+  e.preventDefault(); const command = el('command').value.trim();
+  if (!authorized || pending || !command) return;
+  pending = true; el('submit').disabled = true; el('notice').textContent = 'Sending…';
+  if (embedded) { parent.postMessage({type:'game-panel.command',command},location.origin); return; }
+  try {
+    const res = await fetch('./api/command',{method:'POST',headers:{'Content-Type':'application/json','X-Terraria-Console-Key':credential},body:JSON.stringify({command})});
+    if (!res.ok) throw Error(); el('command').value=''; el('notice').textContent='Delivered to server.';
+  } catch { el('notice').textContent='Delivery could not be confirmed. Check the game output.'; }
+  finally {pending=false; await refresh();}
+};
+if (embedded) {
+  window.addEventListener('message', e => {
+    if (e.source !== parent || e.origin !== location.origin) return;
+    if (e.data?.type === 'game-panel.state') state(e.data.snapshot);
+    if (e.data?.type === 'game-panel.reply') {pending=false; el('submit').disabled=!authorized; if(e.data.ok) el('command').value=''; el('notice').textContent=e.data.message;}
+  });
+  parent.postMessage({type:'game-panel.ready'},location.origin);
+} else {
+  (async function poll(){await refresh(); setTimeout(poll,2200);})();
+}
+</script>
+</html>

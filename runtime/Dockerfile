@@ -3,7 +3,7 @@ LABEL org.opencontainers.image.source="https://github.com/Bacon0033/homepute-ter
       org.opencontainers.image.description="Terraria dashboard add-on for Homepute" \
       org.opencontainers.image.licenses="MIT"
 WORKDIR /app
-COPY server.mjs /app/server.mjs
+COPY server.mjs panel.html /app/
 EXPOSE 3000/tcp
 USER node
 ENTRYPOINT ["node", "/app/server.mjs"]
